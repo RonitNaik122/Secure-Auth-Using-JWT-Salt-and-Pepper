@@ -13,6 +13,14 @@ const AddTodoForm = ({ onAddTodo }) => {
     e.preventDefault()
     if (!title.trim()) return
 
+    console.log("Todo being sent:", {
+      title: title.trim(),
+      description: description.trim(),
+      priority,
+      completed: false,
+    })
+    
+
     onAddTodo({
       title: title.trim(),
       description: description.trim(),

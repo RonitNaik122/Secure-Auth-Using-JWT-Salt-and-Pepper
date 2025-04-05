@@ -86,7 +86,14 @@ const TodoList = ({ onLogout, username }) => {
     try {
       const response = await api.post("/todos/", newTodo);
       console.log("Add todo response:", response.data);
-      setTodos((prevTodos) => [...prevTodos, response.data]);
+      
+      // Make sure we use the priority from the newTodo if it's missing in the response
+      const savedTodo = {
+        ...response.data,
+        priority: response.data.priority || newTodo.priority
+      };
+      
+      setTodos((prevTodos) => [...prevTodos, savedTodo]);
     } catch (err) {
       console.error("Error adding todo:", err);
       setError("Failed to add todo. Please try again.");
@@ -141,6 +148,7 @@ const TodoList = ({ onLogout, username }) => {
         if (filter === "completed") return todo.completed;
         return true;
       })
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0)) // Sort by priority descen
     : [];
 
   const completedCount = todos.filter((todo) => todo.completed).length;
