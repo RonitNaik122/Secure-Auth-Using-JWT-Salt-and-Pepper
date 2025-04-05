@@ -1,42 +1,44 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import axios from "axios"
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import { useApi } from "../context/ApiContext"; // ⬅️ import the context
 
 const LoginPage = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true)
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [email, setEmail] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const { apiBase } = useApi(); // ⬅️ get the API base URL
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      const endpoint = isLogin ? "/login" : "/signup"
-      const data = isLogin ? { username, password } : { username, password, email }
+      const endpoint = isLogin ? "/login" : "/signup";
+      const data = isLogin
+        ? { username, password }
+        : { username, password, email };
 
-      const response = await axios.post(`http://0.0.0.0:8080${endpoint}`, data)
+      // ✅ now using dynamic API base
+      const response = await axios.post(`${apiBase}${endpoint}`, data);
 
       if (response.data.access_token) {
-        // Store token in localStorage for persistence across page refreshes
-        localStorage.setItem("token", response.data.access_token)
-        
-        // Call the onLogin callback with token and username
-        onLogin(response.data.access_token, username)
+        localStorage.setItem("token", response.data.access_token);
+        onLogin(response.data.access_token, username);
       }
     } catch (error) {
-      console.error("Submission Error:", error)
-      setError(error.response?.data?.detail || "An unexpected error occurred")
+      console.error("Submission Error:", error);
+      setError(error.response?.data?.detail || "An unexpected error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -46,8 +48,14 @@ const LoginPage = ({ onLogin }) => {
         transition={{ duration: 0.6 }}
         className="backdrop-blur-xl bg-white/10 p-8 rounded-3xl shadow-2xl w-96 border border-white/20"
       >
-        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>
-          <h2 className="text-4xl font-bold mb-8 text-center text-white">{isLogin ? "Welcome Back" : "Join Us"}</h2>
+        <motion.div
+          initial={{ scale: 0.9 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <h2 className="text-4xl font-bold mb-8 text-center text-white">
+            {isLogin ? "Welcome Back" : "Join Us"}
+          </h2>
         </motion.div>
 
         {error && (
@@ -61,7 +69,11 @@ const LoginPage = ({ onLogin }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.1 }}>
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
             <input
               type="text"
               placeholder="Username"
@@ -92,7 +104,11 @@ const LoginPage = ({ onLogin }) => {
             )}
           </AnimatePresence>
 
-          <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+          <motion.div
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             <input
               type="password"
               placeholder="Password"
@@ -119,7 +135,11 @@ const LoginPage = ({ onLogin }) => {
                 <motion.div
                   className="flex justify-center items-center"
                   animate={{ rotate: 360 }}
-                  transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1, ease: "linear" }}
+                  transition={{
+                    repeat: Number.POSITIVE_INFINITY,
+                    duration: 1,
+                    ease: "linear",
+                  }}
                 >
                   <svg
                     className="animate-spin h-5 w-5 text-black"
@@ -157,13 +177,18 @@ const LoginPage = ({ onLogin }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <button onClick={() => setIsLogin(!isLogin)} className="text-white/70 hover:text-white transition-colors">
-            {isLogin ? "Need an account? Sign Up" : "Already have an account? Sign In"}
+          <button
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-white/70 hover:text-white transition-colors"
+          >
+            {isLogin
+              ? "Need an account? Sign Up"
+              : "Already have an account? Sign In"}
           </button>
         </motion.div>
       </motion.div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;

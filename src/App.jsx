@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import LoginPage from "./components/LoginPage"
 import TodoList from "./components/TodoList"
 import AnimatedBackground from "./components/AnimatedBackground"
+import { ApiProvider } from "./context/ApiContext" // 👈 import context
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -13,7 +14,6 @@ const App = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check if token exists in localStorage
     const storedToken = localStorage.getItem("token")
     if (storedToken) {
       setToken(storedToken)
@@ -49,35 +49,36 @@ const App = () => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <AnimatedBackground />
+    <ApiProvider> {/* 👈 wrap the app here */}
+      <div className="relative min-h-screen overflow-hidden">
+        <AnimatedBackground />
 
-      <AnimatePresence mode="wait">
-        {!isAuthenticated ? (
-          <motion.div
-            key="login"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <LoginPage onLogin={handleLogin} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="todo"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <TodoList token={token} onLogout={handleLogout} username={user?.username} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        <AnimatePresence mode="wait">
+          {!isAuthenticated ? (
+            <motion.div
+              key="login"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <LoginPage onLogin={handleLogin} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="todo"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <TodoList token={token} onLogout={handleLogout} username={user?.username} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </ApiProvider>
   )
 }
 
 export default App
-

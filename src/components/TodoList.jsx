@@ -1,7 +1,5 @@
 "use client";
 
-//TodoList.jsx
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
@@ -12,17 +10,20 @@ const TodoList = ({ onLogout, username }) => {
   const [todos, setTodos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all"); // 'all', 'active', 'completed'
-  
-  // Get token from localStorage
-  const token = localStorage.getItem('token');
-  
-  // Configure axios with auth header
+  const [filter, setFilter] = useState("all");
+
+  const token = localStorage.getItem("token");
+
+  // Create API instance with proper configuration
   const api = axios.create({
-    baseURL: "http://0.0.0.0:8080",
+    baseURL: "https://8f19-2405-201-3c-20a9-9d73-d42e-c812-890f.ngrok-free.app",
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      // Add these headers to bypass ngrok inspection page
+      "ngrok-skip-browser-warning": "true",
+      "ngrok-skip-browser-verify": "true"
+    },
   });
 
   useEffect(() => {
@@ -32,18 +33,50 @@ const TodoList = ({ onLogout, username }) => {
   const fetchTodos = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/todos/");
-      setTodos(response.data);
+      console.log("Fetching todos...");
+      
+      // Use fetch API as alternative to axios for more control
+      const response = await fetch(`${api.defaults.baseURL}/todos/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+          'ngrok-skip-browser-verify': 'true',
+          // Add cache control to prevent browser caching
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      console.log("Response status:", response.status);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error("Received non-JSON response:", contentType);
+        // Try to get the text to see what's wrong
+        const textData = await response.text();
+        console.log("Response text:", textData);
+        throw new Error("Expected JSON response but received: " + contentType);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched todos:", data);
+      
+      const todosArray = Array.isArray(data) ? data : data.todos;
+      setTodos(todosArray || []);
       setError("");
     } catch (err) {
       console.error("Error fetching todos:", err);
+      
       if (err.response && err.response.status === 401) {
         setError("Authentication failed. Please log in again.");
-        // Optional: Auto-logout on auth failure
         onLogout();
       } else {
-        setError("Failed to load your todos. Please try again.");
+        setError(`Failed to load your todos: ${err.message}`);
       }
+      setTodos([]);
     } finally {
       setLoading(false);
     }
@@ -52,14 +85,11 @@ const TodoList = ({ onLogout, username }) => {
   const addTodo = async (newTodo) => {
     try {
       const response = await api.post("/todos/", newTodo);
-      setTodos([...todos, response.data]);
+      console.log("Add todo response:", response.data);
+      setTodos((prevTodos) => [...prevTodos, response.data]);
     } catch (err) {
       console.error("Error adding todo:", err);
-      if (err.response && err.response.status === 401) {
-        setError("Authentication failed. Please log in again.");
-      } else {
-        setError("Failed to add todo. Please try again.");
-      }
+      setError("Failed to add todo. Please try again.");
     }
   };
 
@@ -67,53 +97,51 @@ const TodoList = ({ onLogout, username }) => {
     try {
       const todoToUpdate = todos.find((todo) => todo.id === id);
       const updatedTodo = { ...todoToUpdate, completed: !completed };
-
       await api.put(`/todos/${id}`, updatedTodo);
-
-      setTodos(todos.map((todo) => (todo.id === id ? { ...todo, completed: !completed } : todo)));
+      setTodos((prev) =>
+        prev.map((todo) => (todo.id === id ? { ...todo, completed: !completed } : todo))
+      );
     } catch (err) {
       console.error("Error updating todo:", err);
-      if (err.response && err.response.status === 401) {
-        setError("Authentication failed. Please log in again.");
-      } else {
-        setError("Failed to update todo. Please try again.");
-      }
+      setError("Failed to update todo. Please try again.");
     }
   };
 
   const deleteTodo = async (id) => {
     try {
       await api.delete(`/todos/${id}`);
-      setTodos(todos.filter((todo) => todo.id !== id));
+      setTodos((prev) => prev.filter((todo) => todo.id !== id));
     } catch (err) {
       console.error("Error deleting todo:", err);
-      if (err.response && err.response.status === 401) {
-        setError("Authentication failed. Please log in again.");
-      } else {
-        setError("Failed to delete todo. Please try again.");
-      }
+      setError("Failed to delete todo. Please try again.");
     }
   };
 
   const updateTodo = async (id, updatedData) => {
     try {
       const response = await api.put(`/todos/${id}`, updatedData);
-      setTodos(todos.map((todo) => (todo.id === id ? response.data : todo)));
+      setTodos((prev) =>
+        prev.map((todo) => (todo.id === id ? response.data : todo))
+      );
     } catch (err) {
       console.error("Error updating todo:", err);
-      if (err.response && err.response.status === 401) {
-        setError("Authentication failed. Please log in again.");
-      } else {
-        setError("Failed to update todo. Please try again.");
-      }
+      setError("Failed to update todo. Please try again.");
     }
   };
 
-  const filteredTodos = todos.filter((todo) => {
-    if (filter === "active") return !todo.completed;
-    if (filter === "completed") return todo.completed;
-    return true; // 'all'
-  });
+  // Force refresh todos
+  const refreshTodos = () => {
+    setLoading(true);
+    fetchTodos();
+  };
+
+  const filteredTodos = Array.isArray(todos)
+    ? todos.filter((todo) => {
+        if (filter === "active") return !todo.completed;
+        if (filter === "completed") return todo.completed;
+        return true;
+      })
+    : [];
 
   const completedCount = todos.filter((todo) => todo.completed).length;
   const activeCount = todos.length - completedCount;
@@ -154,9 +182,15 @@ const TodoList = ({ onLogout, username }) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-red-500/20 border border-red-500/30 text-white px-4 py-3 rounded-xl mb-6"
+            className="bg-red-500/20 border border-red-500/30 text-white px-4 py-3 rounded-xl mb-6 flex justify-between items-center"
           >
-            {error}
+            <div>{error}</div>
+            <button 
+              onClick={refreshTodos} 
+              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg text-sm"
+            >
+              Retry
+            </button>
           </motion.div>
         )}
 
@@ -164,28 +198,29 @@ const TodoList = ({ onLogout, username }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="flex space-x-2 mb-6"
+          className="flex justify-between items-center mb-6"
         >
-          <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label="All" count={todos.length} />
-          <FilterButton
-            active={filter === "active"}
-            onClick={() => setFilter("active")}
-            label="Active"
-            count={activeCount}
-          />
-          <FilterButton
-            active={filter === "completed"}
-            onClick={() => setFilter("completed")}
-            label="Completed"
-            count={completedCount}
-          />
+          <div className="flex space-x-2">
+            <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label="All" count={todos.length} />
+            <FilterButton active={filter === "active"} onClick={() => setFilter("active")} label="Active" count={activeCount} />
+            <FilterButton active={filter === "completed"} onClick={() => setFilter("completed")} label="Completed" count={completedCount} />
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={refreshTodos}
+            className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition duration-200"
+          >
+            Refresh
+          </motion.button>
         </motion.div>
 
         {loading ? (
           <div className="flex justify-center py-12">
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1, ease: "linear" }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
               className="w-8 h-8 border-2 border-t-white border-white/20 rounded-full"
             />
           </div>
