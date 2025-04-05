@@ -22,7 +22,7 @@ const TodoList = ({ onLogout, username }) => {
       "Content-Type": "application/json",
       // Add these headers to bypass ngrok inspection page
       "ngrok-skip-browser-warning": "true",
-      "ngrok-skip-browser-verify": "true"
+      "ngrok-skip-browser-verify": "true",
     },
   });
 
@@ -34,42 +34,42 @@ const TodoList = ({ onLogout, username }) => {
     try {
       setLoading(true);
       console.log("Fetching todos...");
-      
+
       // Use fetch API as alternative to axios for more control
       const response = await fetch(`${api.defaults.baseURL}/todos/`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-          'ngrok-skip-browser-verify': 'true',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
+          "ngrok-skip-browser-verify": "true",
           // Add cache control to prevent browser caching
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
       });
-      
+
       console.log("Response status:", response.status);
-      
+
       // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         console.error("Received non-JSON response:", contentType);
         // Try to get the text to see what's wrong
         const textData = await response.text();
         console.log("Response text:", textData);
         throw new Error("Expected JSON response but received: " + contentType);
       }
-      
+
       const data = await response.json();
       console.log("Fetched todos:", data);
-      
+
       const todosArray = Array.isArray(data) ? data : data.todos;
       setTodos(todosArray || []);
       setError("");
     } catch (err) {
       console.error("Error fetching todos:", err);
-      
+
       if (err.response && err.response.status === 401) {
         setError("Authentication failed. Please log in again.");
         onLogout();
@@ -86,13 +86,13 @@ const TodoList = ({ onLogout, username }) => {
     try {
       const response = await api.post("/todos/", newTodo);
       console.log("Add todo response:", response.data);
-      
+
       // Make sure we use the priority from the newTodo if it's missing in the response
       const savedTodo = {
         ...response.data,
-        priority: response.data.priority || newTodo.priority
+        priority: response.data.priority || newTodo.priority,
       };
-      
+
       setTodos((prevTodos) => [...prevTodos, savedTodo]);
     } catch (err) {
       console.error("Error adding todo:", err);
@@ -106,7 +106,9 @@ const TodoList = ({ onLogout, username }) => {
       const updatedTodo = { ...todoToUpdate, completed: !completed };
       await api.put(`/todos/${id}`, updatedTodo);
       setTodos((prev) =>
-        prev.map((todo) => (todo.id === id ? { ...todo, completed: !completed } : todo))
+        prev.map((todo) =>
+          todo.id === id ? { ...todo, completed: !completed } : todo
+        )
       );
     } catch (err) {
       console.error("Error updating todo:", err);
@@ -143,12 +145,26 @@ const TodoList = ({ onLogout, username }) => {
   };
 
   const filteredTodos = Array.isArray(todos)
-    ? todos.filter((todo) => {
-        if (filter === "active") return !todo.completed;
-        if (filter === "completed") return todo.completed;
-        return true;
-      })
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0)) // Sort by priority descen
+    ? todos
+        .filter((todo) => {
+          if (filter === "active") return !todo.completed;
+          if (filter === "completed") return todo.completed;
+          return true;
+        })
+        .sort((a, b) => {
+          // For "completed" view, sort normally by priority
+          if (filter === "completed") {
+            return (b.priority || 0) - (a.priority || 0);
+          }
+
+          // For "all" or "active", completed ones go to bottom
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+
+          // Then sort by priority
+          return (b.priority || 0) - (a.priority || 0);
+        })
     : [];
 
   const completedCount = todos.filter((todo) => todo.completed).length;
@@ -193,8 +209,8 @@ const TodoList = ({ onLogout, username }) => {
             className="bg-red-500/20 border border-red-500/30 text-white px-4 py-3 rounded-xl mb-6 flex justify-between items-center"
           >
             <div>{error}</div>
-            <button 
-              onClick={refreshTodos} 
+            <button
+              onClick={refreshTodos}
               className="bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg text-sm"
             >
               Retry
@@ -206,14 +222,29 @@ const TodoList = ({ onLogout, username }) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="flex justify-between items-center mb-6"
+          className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0 sm:space-x-3 mb-6"
         >
-          <div className="flex space-x-2">
-            <FilterButton active={filter === "all"} onClick={() => setFilter("all")} label="All" count={todos.length} />
-            <FilterButton active={filter === "active"} onClick={() => setFilter("active")} label="Active" count={activeCount} />
-            <FilterButton active={filter === "completed"} onClick={() => setFilter("completed")} label="Completed" count={completedCount} />
+          <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+            <FilterButton
+              active={filter === "all"}
+              onClick={() => setFilter("all")}
+              label="All"
+              count={todos.length}
+            />
+            <FilterButton
+              active={filter === "active"}
+              onClick={() => setFilter("active")}
+              label="Active"
+              count={activeCount}
+            />
+            <FilterButton
+              active={filter === "completed"}
+              onClick={() => setFilter("completed")}
+              label="Completed"
+              count={completedCount}
+            />
           </div>
-          
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -233,13 +264,23 @@ const TodoList = ({ onLogout, username }) => {
             />
           </div>
         ) : filteredTodos.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 text-white/70">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 text-white/70"
+          >
             {todos.length === 0
               ? "You don't have any tasks yet. Add one above!"
-              : `No ${filter === "active" ? "active" : "completed"} tasks found.`}
+              : `No ${
+                  filter === "active" ? "active" : "completed"
+                } tasks found.`}
           </motion.div>
         ) : (
-          <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+          <motion.ul
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-3"
+          >
             <AnimatePresence>
               {filteredTodos.map((todo) => (
                 <TodoItem
@@ -264,11 +305,19 @@ const FilterButton = ({ active, onClick, label, count }) => (
     whileTap={{ scale: 0.95 }}
     onClick={onClick}
     className={`px-4 py-2 rounded-xl flex items-center space-x-2 ${
-      active ? "bg-white text-black font-medium" : "bg-white/10 text-white hover:bg-white/20"
+      active
+        ? "bg-white text-black font-medium"
+        : "bg-white/10 text-white hover:bg-white/20"
     }`}
   >
     <span>{label}</span>
-    <span className={`text-sm px-2 py-0.5 rounded-full ${active ? "bg-black/10" : "bg-white/20"}`}>{count}</span>
+    <span
+      className={`text-sm px-2 py-0.5 rounded-full ${
+        active ? "bg-black/10" : "bg-white/20"
+      }`}
+    >
+      {count}
+    </span>
   </motion.button>
 );
 
