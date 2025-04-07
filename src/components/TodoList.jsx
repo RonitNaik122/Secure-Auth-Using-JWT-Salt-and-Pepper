@@ -16,7 +16,7 @@ const TodoList = ({ onLogout, username }) => {
 
   // Create API instance with proper configuration
   const api = axios.create({
-    baseURL: "https://8f19-2405-201-3c-20a9-9d73-d42e-c812-890f.ngrok-free.app",
+    baseURL: "https://c1fd-2405-201-3c-20a9-9d73-d42e-c812-890f.ngrok-free.app",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
